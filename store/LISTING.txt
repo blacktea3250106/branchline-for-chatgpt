@@ -93,7 +93,7 @@ Screenshots（截圖，依序上傳；兩種語言都傳這 4 張）：
   4. store/screenshot-4-back.png
 
 Small promo tile（小型宣傳圖塊 440×280）：store/promo-440x280.png
-Marquee promo tile：留空
+Marquee promo tile（跑馬燈宣傳圖塊 1400×560，選填）：store/marquee-1400x560.png
 Global promo video（宣傳影片）：https://youtu.be/vnSDKrh5fTQ
 Official URL：留空
 Homepage URL：https://github.com/blacktea3250106/branchline-for-chatgpt
