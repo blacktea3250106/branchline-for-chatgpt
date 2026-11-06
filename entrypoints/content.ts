@@ -22,7 +22,7 @@ import {
   sidebarConversationIds,
   titleOf,
 } from '@/lib/chatgpt-dom';
-import { load, loadEnabled, loadMsgs, loadPrefs, onExternalChange, removeConv, saveConv, saveMsgs, savePrefs, type ExternalChange, type Prefs } from '@/lib/store';
+import { load, loadEnabled, loadMsgs, loadPrefs, onExternalChange, removeConv, removeMsgs, saveConv, saveMsgs, savePrefs, type ExternalChange, type Prefs } from '@/lib/store';
 import {
   addMessages,
   buildTree,
@@ -92,8 +92,11 @@ export default defineContentScript({
 
     /** 這次打開的對話：判斷「被導回首頁＝已刪除」「分頁標題是否可信」「墓碑能否復原」用 */
     const newVisit = (id: string | null, at: number) => ({ id, at, reads: 0, firstReadAt: 0, userInput: false });
+    // 開關關閉時，從第一刻就不讀頁面：先讀開關，再決定要不要看網址、掛輸入監聽
+    const onAtStart = await loadEnabled();
+    if (disposed) return;
     // 頁面一開始的網址：ChatGPT 可能在外掛啟動前就把已刪除的對話導回首頁，從這裡還看得到原本要開的是哪一條
-    let visit = newVisit(currentConversationIdOf(performance.getEntriesByType('navigation')[0]?.name), Date.now());
+    let visit = newVisit(onAtStart ? currentConversationIdOf(performance.getEntriesByType('navigation')[0]?.name) : null, Date.now());
     /** 在哪個草稿裡按了送出、什麼時候、當時左欄已有哪些對話 */
     let submitted: Submitted | null = null;
     /** 使用者確認刪除的對話：等連結消失或頁面離開它（真的刪了），逾時作罷。可能連刪好幾條 */
@@ -110,7 +113,7 @@ export default defineContentScript({
         // 寧可漏掉：轉正只是讓新分支早一點出現，重新整理後頁面上的「接續自」連結一樣會接上。
         if (outsideComposer) submitted = null;
       });
-    pageOffs.push(onInput());
+    if (onAtStart) pageOffs.push(onInput());
 
     // 先開始收其他分頁的變動，載入期間收到的先暫存，載入完再套用（不漏掉載入空窗裡的清除或新增）
     let pending: ExternalChange[] | null = [];
@@ -320,7 +323,11 @@ export default defineContentScript({
         const ids = addMessages(msgs[id], messageIdsOf(id));
         if (ids !== msgs[id] && !paused) {
           msgs = { ...msgs, [id]: ids };
-          if (!isDraft(id)) void saveMsgs(id, ids);
+          // 存下的是和其他分頁合併後的結果；比記憶體多就跟著更新
+          if (!isDraft(id))
+            void saveMsgs(id, ids).then((saved) => {
+              if (saved && saved.length > (msgs[id]?.length ?? 0)) msgs = { ...msgs, [id]: saved };
+            });
         }
         if (!o.parentId) {
           const p = inferParent(msgs, id);
@@ -411,6 +418,11 @@ export default defineContentScript({
         const r = pruneTombstones(store, Date.now());
         store = r.store;
         r.drop.forEach((x) => void removeConv(x));
+        if (r.drop.length) {
+          msgs = { ...msgs };
+          for (const x of r.drop) delete msgs[x];
+          void removeMsgs(r.drop);
+        }
       }
       if (fromOff) {
         const id = currentConversationId();
@@ -456,6 +468,13 @@ export default defineContentScript({
             delete store[cid];
             seenTitles.delete(cid); // 被清除後重新記下時，標題要能補回
           }
+        }
+      }
+      if (ch.msgs.size) {
+        msgs = { ...msgs };
+        for (const [cid, ids] of ch.msgs) {
+          if (ids) msgs[cid] = addMessages(msgs[cid], ids);
+          else delete msgs[cid];
         }
       }
       if (ch.prefs) prefs = ch.prefs;

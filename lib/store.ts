@@ -2,7 +2,7 @@
 // 保存的資料（只存在這台電腦，不傳到任何地方）：有分支關係的對話 ID、父對話 ID、對話標題、第一次看到的時間，
 // 造訪過的對話的訊息 ID（只是編號，用來在頁面沒有「接續自」連結時比對出父對話），
 // 以及結構圖是否收起、外掛是否開啟。不存訊息內容。外掛不在無痕視窗執行（manifest incognito: not_allowed）。
-import { isValidId, isValidMsgId, MSG_CAP, parseConv, pickParent, type Conv, type MsgIndex, type Store } from './tree';
+import { addMessages, isValidId, isValidMsgId, MSG_CAP, parseConv, pickParent, type Conv, type MsgIndex, type Store } from './tree';
 
 /** 每條對話一個 key：多個分頁同時寫不同對話時不會互相蓋掉 */
 const CONV_PREFIX = 'bc-c:';
@@ -76,6 +76,12 @@ export async function saveConv(c: Conv, notAfter?: number): Promise<Conv | null>
   return navigator.locks ? navigator.locks.request(`bc-conv:${c.id}`, run) : run();
 }
 
+/** storage 裡一筆訊息 ID 紀錄 → 合法的 ID 陣列；格式不對回傳 undefined */
+function parseMsgs(v: unknown): string[] | undefined {
+  const o = v as { ids?: unknown } | null;
+  return o && typeof o === 'object' && Array.isArray(o.ids) ? o.ids.filter(isValidMsgId).slice(0, MSG_CAP) : undefined;
+}
+
 /** 讀全部訊息 ID 索引；超過上限時刪掉最久沒更新的 */
 export async function loadMsgs(): Promise<MsgIndex> {
   let all: Record<string, unknown>;
@@ -89,9 +95,10 @@ export async function loadMsgs(): Promise<MsgIndex> {
   for (const [k, v] of Object.entries(all)) {
     if (!k.startsWith(MSG_PREFIX)) continue;
     const id = k.slice(MSG_PREFIX.length);
-    const o = v as { ids?: unknown; at?: unknown } | null;
-    if (!isValidId(id) || !o || !Array.isArray(o.ids)) continue;
-    rows.push([id, o.ids.filter(isValidMsgId).slice(0, MSG_CAP), typeof o.at === 'number' ? o.at : 0]);
+    const ids = parseMsgs(v);
+    if (!isValidId(id) || !ids) continue;
+    const at = (v as { at?: unknown }).at;
+    rows.push([id, ids, typeof at === 'number' ? at : 0]);
   }
   rows.sort((a, b) => b[2] - a[2]);
   const drop = rows.slice(MSG_CONV_CAP).map(([id]) => MSG_PREFIX + id);
@@ -99,12 +106,35 @@ export async function loadMsgs(): Promise<MsgIndex> {
   return Object.fromEntries(rows.slice(0, MSG_CONV_CAP).map(([id, ids]) => [id, ids]));
 }
 
-/** 存一條對話的訊息 ID（清除後或外掛關閉時不寫） */
-export async function saveMsgs(id: string, ids: string[]): Promise<void> {
+/**
+ * 存一條對話的訊息 ID，回傳實際存下的（和 storage 裡已有的合併後）；沒寫入回傳 null。
+ * 在 Web Lock 裡先讀 storage 再合併：多個分頁看過同一條、捲到的範圍不同時，不會互相蓋掉。
+ * 清除時間晚於這次寫入的請求、或外掛已關閉：不寫（和 saveConv 同一條規則）。
+ */
+export async function saveMsgs(id: string, ids: string[]): Promise<string[] | null> {
+  const key = MSG_PREFIX + id;
+  const requestedAt = Date.now();
+  const run = async (): Promise<string[] | null> => {
+    try {
+      const r = await chrome.storage.local.get([key, CLEARED_KEY, ENABLED_KEY]);
+      const cleared = r[CLEARED_KEY];
+      if ((typeof cleared === 'number' && cleared >= requestedAt) || r[ENABLED_KEY] === false) return null;
+      const merged = addMessages(parseMsgs(r[key]), ids);
+      await chrome.storage.local.set({ [key]: { ids: merged, at: Date.now() } });
+      return merged;
+    } catch (e) {
+      warn(e);
+      return null;
+    }
+  };
+  return navigator.locks ? navigator.locks.request(`bc-msgs:${id}`, run) : run();
+}
+
+/** 刪掉幾條對話的訊息 ID（清過期墓碑時用：對話被清掉，就不該再被拿來推斷父對話） */
+export async function removeMsgs(ids: string[]): Promise<void> {
+  if (!ids.length) return;
   try {
-    const r = await chrome.storage.local.get([CLEARED_KEY, ENABLED_KEY]);
-    if (r[ENABLED_KEY] === false || (typeof r[CLEARED_KEY] === 'number' && Date.now() - r[CLEARED_KEY] < 2000)) return;
-    await chrome.storage.local.set({ [MSG_PREFIX + id]: { ids, at: Date.now() } });
+    await chrome.storage.local.remove(ids.map((id) => MSG_PREFIX + id));
   } catch (e) {
     warn(e);
   }
@@ -175,6 +205,8 @@ export async function saveEnabled(on: boolean): Promise<void> {
 export interface ExternalChange {
   /** 有變動的對話：值為 null 表示被刪除 */
   convs: Map<string, Conv | null>;
+  /** 有變動的訊息 ID（其他分頁看過的）：值為 null 表示被刪除 */
+  msgs: Map<string, string[] | null>;
   /** 偏好有變動時才有 */
   prefs?: Prefs;
   /** 選項頁剛清除了全部資料 */
@@ -187,7 +219,7 @@ export interface ExternalChange {
 export function onExternalChange(cb: (c: ExternalChange) => void): () => void {
   const fn = (changes: Record<string, chrome.storage.StorageChange>, area: string) => {
     if (area !== 'local') return;
-    const out: ExternalChange = { convs: new Map() };
+    const out: ExternalChange = { convs: new Map(), msgs: new Map() };
     for (const [k, ch] of Object.entries(changes)) {
       if (k === CLEARED_KEY) out.cleared = ch.newValue !== undefined;
       else if (k === PREFS_KEY) out.prefs = parsePrefs(ch.newValue);
@@ -197,9 +229,14 @@ export function onExternalChange(cb: (c: ExternalChange) => void): () => void {
         if (!isValidId(id)) continue;
         const c = ch.newValue === undefined ? null : parseConv(ch.newValue);
         if (c === null || c.id === id) out.convs.set(id, c);
+      } else if (k.startsWith(MSG_PREFIX)) {
+        const id = k.slice(MSG_PREFIX.length);
+        if (!isValidId(id)) continue;
+        const ids = ch.newValue === undefined ? null : parseMsgs(ch.newValue);
+        if (ids !== undefined) out.msgs.set(id, ids);
       }
     }
-    if (out.convs.size || out.prefs || out.cleared || out.enabled !== undefined) cb(out);
+    if (out.convs.size || out.msgs.size || out.prefs || out.cleared || out.enabled !== undefined) cb(out);
   };
   chrome.storage.onChanged.addListener(fn);
   return () => chrome.storage.onChanged.removeListener(fn);

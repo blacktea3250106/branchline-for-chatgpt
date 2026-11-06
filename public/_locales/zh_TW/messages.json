@@ -1,6 +1,6 @@
 {
   "extDescription": {
-    "message": "把 ChatGPT 對話分支變成視覺化的樹狀結構，看清每條對話的關係，一鍵切回主線。"
+    "message": "See ChatGPT branches as a visual tree"
   },
   "newBranch": {
     "message": "新分支"
