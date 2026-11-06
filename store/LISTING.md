@@ -5,48 +5,48 @@
 ## 商品詳情（Store listing）
 
 - 名稱（取自 manifest）：BranchLine for ChatGPT
-- 摘要（取自 manifest description）：在 ChatGPT 右側顯示分支對話結構圖
+- 摘要（取自 _locales/en 的 extDescription）：See every ChatGPT branch as a tree on the right, and jump back to the main thread in one click.
 - 類別：工作效率（Productivity）→ 工具
-- 語言：中文（繁體）
+- 語言：English（另有繁體中文介面，跟著瀏覽器語言）
 
 ### 說明
 
 ```
-用 ChatGPT 深入研究一個主題時，常會冒出需要另外弄清楚的子問題。在同一個對話裡追問，主線越拉越長、思路被打斷；用內建的分支開新對話，分支一多全擠在左側列表，分不清哪條才是主線。
+Deep in a ChatGPT session, side questions keep coming up. Ask them in the same chat and the main thread gets long and loses its direction. Use ChatGPT's built-in "Branch in new chat" and every branch lands in the sidebar as another "Branch · …", so it's hard to tell which one was the main thread.
 
-BranchLine 把 ChatGPT 原生的分支畫成樹狀結構圖，固定顯示在畫面右側：
+BranchLine draws your ChatGPT branches as a tree, pinned to the right side of the page:
 
-• 岔出去不打亂主線：子問題開成支線，主線保持乾淨
-• 隨時回得去：點節點就切回主線，也看得出每條支線從哪裡分出來
-• 一眼看到全貌：知道自己現在在哪一條、總共開了幾條
+• Branch out without cluttering the main thread
+• Click any node to jump back, and see where each branch came from
+• Always know which line you're on and how many you've opened
 
-其他：
-• 只有一條對話時不顯示，不佔空間
-• 支援淺色／深色模式
-• 工具列可一鍵關閉；關閉時完全不讀取頁面
+Also:
+• Hidden when a chat has no branches
+• Works in light and dark mode
+• Turn it off from the toolbar; when off, it reads nothing
 
-隱私：
-• 只在 chatgpt.com 執行，資料只存在你的瀏覽器
-• 不保存訊息內容，不傳送任何資料到外部伺服器
-• 不讀登入憑證，不替你送出或修改對話
+Privacy:
+• Runs only on chatgpt.com; everything stays in your browser
+• Saves no message content and sends nothing to any server
+• Doesn't read your login, and never sends or edits messages for you
 
-本外掛與 OpenAI 無關，非官方產品。
+Not affiliated with OpenAI.
 ```
 
 ### 圖片
 
 - 商店圖示：128×128 → `public/icon/128.png`
-- 截圖：至少 1 張，1280×800 或 640×400 → `store/screenshot-*.png`
+- 截圖（依序上傳）：`store/screenshot-1-hero.png`、`screenshot-2-map.png`、`screenshot-3-detail.png`、`screenshot-4-back.png`（1280×800）
 - 小型宣傳圖塊：440×280 → `store/promo-440x280.png`
 
 ## 隱私權實務（Privacy practices）
 
 - 單一用途：
-  `在 ChatGPT 頁面右側顯示分支對話的樹狀結構圖，讓使用者看到對話之間的分支關係並切換。`
+  `Shows ChatGPT branch conversations as a tree on the right side of chatgpt.com so users can see how chats branch and switch between them.`
 - `storage` 權限理由：
-  `在本機保存有分支關係的對話 ID、父對話 ID、對話標題與使用者偏好（結構圖收合、外掛開關），用來畫出結構圖。不保存訊息內容。`
+  `Stores, locally only, the IDs, parent IDs and titles of chats that have branches, message IDs of visited chats (to work out which chat a branch came from), and user preferences (map hidden, extension on/off). No message content is stored.`
 - 主機權限（content script 比對 https://chatgpt.com/*）理由：
-  `需要讀取 ChatGPT 頁面上的對話連結與「接續自」連結來建立分支關係，並在頁面右側顯示結構圖。只在 chatgpt.com 執行。`
+  `Reads chat links, branch links and message IDs on chatgpt.com pages to build the branch tree, and shows the map on the page. Runs only on chatgpt.com.`
 - 遠端程式碼：否
 - 資料用途：不勾選任何類別（資料只在本機處理，不傳出裝置）
 - 三項聲明全部勾選（不販售、不用於無關用途、不用於信用評估）
