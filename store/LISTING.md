@@ -5,32 +5,76 @@
 ## 商品詳情（Store listing）
 
 - 名稱（取自 manifest）：BranchLine for ChatGPT
-- 摘要（取自 _locales/en 的 extDescription）：See every ChatGPT branch as a tree on the right, and jump back to the main thread in one click.
+- 摘要（取自 `_locales/<語言>/messages.json` 的 `extDescription`，商店依語言自動顯示）
 - 類別：工作效率（Productivity）→ 工具
 - 語言：English（另有繁體中文介面，跟著瀏覽器語言）
 
-### 說明
+### 說明（後台頂端語言下拉選單分別填）
+
+**English**
 
 ```
-Deep in a ChatGPT session, side questions keep coming up. Ask them in the same chat and the main thread gets long and loses its direction. Use ChatGPT's built-in "Branch in new chat" and every branch lands in the sidebar as another "Branch · …", so it's hard to tell which one was the main thread.
+When you dig into a topic with ChatGPT, every answer raises new questions. You want to explore them, then come back to where you were. But either way, something gets in the way:
 
-BranchLine draws your ChatGPT branches as a tree, pinned to the right side of the page:
+① Stay in one chat
+Different questions pile up in the same thread. The longer it gets, the more you scroll back to find where you were, and the easier it is to lose your flow, or forget what else you wanted to ask.
 
-• Branch out without cluttering the main thread
-• Click any node to jump back, and see where each branch came from
-• Always know which line you're on and how many you've opened
+② Branch into new chats
+Each question stays clean, but branches pile up in the sidebar as "Branch · …". It gets hard to tell which one was the original, and time goes into hunting for the right chat.
 
-Also:
-• Hidden when a chat has no branches
-• Works in light and dark mode
-• Turn it off from the toolbar; when off, it reads nothing
+Thinking isn't linear. It branches, then comes back.
 
-Privacy:
+BranchLine pins a tree of your branches to the right side of ChatGPT:
+• Explore the details: side questions live on their own lines, so the main thread stays clean
+• Follow new questions: branch from a branch, as deep as you need
+• See how it all connects: where each branch came from, and which one you're on
+• Pick up where you left off: click any line to jump back
+
+How to use
+1. On any ChatGPT answer, open the ⋯ menu and branch into a new chat
+2. Ask your side question there
+3. Use the map on the right to move between chats
+
+Privacy
 • Runs only on chatgpt.com; everything stays in your browser
 • Saves no message content and sends nothing to any server
-• Doesn't read your login, and never sends or edits messages for you
+• Never reads your login, and never sends or edits messages for you
 
-Not affiliated with OpenAI.
+Questions or bugs: https://github.com/blacktea3250106/branchline-for-chatgpt/issues
+BranchLine is not affiliated with OpenAI.
+```
+
+**中文（繁體）**
+
+```
+用 ChatGPT 深入研究一個主題時，過程中常會冒出幾個需要額外了解的子問題。你會想先深入探索，釐清後再回到原本的主題。但不管怎麼做，都有困擾：
+
+① 不開分支，繼續在同一個對話
+不同問題混在一起，對話越來越長，得一直往上滑找回原本的方向，研究心流很容易被打斷，甚至忘了還有哪些想探索的問題。
+
+② 開分支，獨立探索不同問題
+對話是乾淨了，但分支越開越多，全部堆在左側列表，很難找回哪一個才是原本的對話，時間都浪費在找對話上。
+
+思考本來就不是線性的，而是不斷探索、分岔，再回到上一層。
+
+BranchLine 把分支畫成樹狀結構圖，固定在 ChatGPT 右側：
+• 深入細節：子問題各自一條支線，主線保持乾淨
+• 追問到底：支線還能再開支線，層層往下
+• 看清全貌：每條支線從哪裡分出來、你現在在哪一條，一眼就知道
+• 隨時回去：點任一條就切過去，回到主線也只要一下
+
+使用方式
+1. 在任一則 ChatGPT 回答按「⋯」，建立新對話分支
+2. 在分支裡問你的子問題
+3. 用右側結構圖在對話之間切換
+
+隱私
+• 只在 chatgpt.com 執行，資料只存在你的瀏覽器
+• 不保存訊息內容，不傳送任何資料到外部伺服器
+• 不讀取登入資訊，不替你送出或修改對話
+
+問題回報：https://github.com/blacktea3250106/branchline-for-chatgpt/issues
+本外掛與 OpenAI 無關，非官方產品。
 ```
 
 ### 圖片
