@@ -1,0 +1,17 @@
+{
+  "extDescription": { "message": "See every ChatGPT branch as a tree on the right, and jump back to the main thread in one click." },
+  "newBranch": { "message": "New branch" },
+  "untitled": { "message": "Chat" },
+  "mapLabel": { "message": "Branch map" },
+  "collapseNode": { "message": "Collapse $NAME$", "placeholders": { "name": { "content": "$1" } } },
+  "expandNode": { "message": "Expand $NAME$", "placeholders": { "name": { "content": "$1" } } },
+  "hideMap": { "message": "Hide branch map" },
+  "showMap": { "message": "Show branch map" },
+  "optionsTitle": { "message": "BranchLine settings" },
+  "optionsStored": { "message": "Everything stays in Chrome on this computer: IDs of chats that have branches, their parent chat IDs, chat titles, when each was first seen and when it was deleted in ChatGPT (deleted chats keep only their ID; ones without branches are removed after 30 days, the next time you open ChatGPT), message IDs of chats you have opened (numbers only, used to work out where a branch came from; up to 500 chats), and whether the map is hidden and the extension is on. No message content is saved, and nothing is sent anywhere. It doesn't run in Incognito. ChatGPT accounts in the same Chrome profile share this data." },
+  "optionsDelete": { "message": "Chats you delete with the mouse from a ChatGPT menu in this browser disappear from the map in every tab. Chats deleted on another device, with “Delete all chats”, with the keyboard, or while the extension is off are removed the next time you open them." },
+  "clearButton": { "message": "Clear all branch data" },
+  "clearConfirm": { "message": "Clear all branch data? This can't be undone." },
+  "cleared": { "message": "Cleared." },
+  "clearFailed": { "message": "Couldn't clear. Reload the page and try again." }
+}

@@ -1,6 +1,7 @@
 // 右側分支結構圖。放在 Shadow DOM 裡，隔離 ChatGPT 的全域樣式。
 // 樣式只用 design/ 的 --bc- 變數與 bm- 類別；行為對照 prototype/index.html 的 map()。
 import tokensCss from '../../design/tokens.css?inline';
+import { t } from '../i18n';
 import mapCss from '../../design/branch-map.css?inline';
 import { isDraft, label, type TreeNode } from '../tree';
 
@@ -56,7 +57,7 @@ export function mountBranchMap(
   style.textContent = PANEL_CSS;
   const nav = document.createElement('nav');
   nav.className = 'bm';
-  nav.setAttribute('aria-label', '分支結構');
+  nav.setAttribute('aria-label', t('mapLabel'));
   nav.id = 'bc-map';
   const toggle = document.createElement('button');
   toggle.type = 'button';
@@ -95,7 +96,7 @@ export function mountBranchMap(
       const li = el('li', isRoot ? '' : 'bm-child' + (pathSet.has(c.id) ? ' bm-path' : ''));
       const r = el('div', 'bm-row' + (on ? ' bm-active' : ''));
       const b = el('button', 'bm-node' + (isRoot ? ' bm-trunk' : '') + (on ? ' bm-on' : '') + (isDraft(c.id) ? ' bm-draft' : ''));
-      const text = isDraft(c.id) ? '新分支' : (liveTitle(c.id) ?? label(c, '對話'));
+      const text = isDraft(c.id) ? t('newBranch') : (liveTitle(c.id) ?? label(c, t('untitled')));
       b.type = 'button';
       b.append(el('span', undefined, text));
       b.title = text;
@@ -120,7 +121,7 @@ export function mountBranchMap(
           wrap.classList.toggle('bm-closed', !o);
           chev.classList.toggle('bm-shut', !o);
           chev.setAttribute('aria-expanded', String(o));
-          chev.setAttribute('aria-label', (o ? '收合 ' : '展開 ') + text);
+          chev.setAttribute('aria-label', t(o ? 'collapseNode' : 'expandNode', text));
         };
         chev.addEventListener('click', () => {
           openState.set(c.id, !isOpen(c.id));
@@ -156,16 +157,16 @@ export function mountBranchMap(
     const open = mode === 'push' || mode === 'overlay';
     nav.inert = !open; // 收起時 Tab 不會走進看不見的節點
     toggle.setAttribute('aria-expanded', String(open));
-    const t = open ? '收起分支結構' : '展開分支結構';
-    toggle.setAttribute('aria-label', t);
-    toggle.title = t;
+    const tip = open ? t('hideMap') : t('showMap');
+    toggle.setAttribute('aria-label', tip);
+    toggle.title = tip;
   }
 
   return {
     render,
     setMode,
-    setTheme: (t) => {
-      if (host.getAttribute('data-bc-theme') !== t) host.setAttribute('data-bc-theme', t);
+    setTheme: (th) => {
+      if (host.getAttribute('data-bc-theme') !== th) host.setAttribute('data-bc-theme', th);
     },
     setToggleRight: (px) => {
       toggle.style.right = `${px}px`;

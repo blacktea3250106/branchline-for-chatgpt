@@ -1,10 +1,15 @@
 // chrome.storage.local 的讀寫。
 // 保存的資料（只存在這台電腦，不傳到任何地方）：有分支關係的對話 ID、父對話 ID、對話標題、第一次看到的時間，
+// 造訪過的對話的訊息 ID（只是編號，用來在頁面沒有「接續自」連結時比對出父對話），
 // 以及結構圖是否收起、外掛是否開啟。不存訊息內容。外掛不在無痕視窗執行（manifest incognito: not_allowed）。
-import { isValidId, parseConv, type Conv, type Store } from './tree';
+import { isValidId, isValidMsgId, MSG_CAP, parseConv, pickParent, type Conv, type MsgIndex, type Store } from './tree';
 
 /** 每條對話一個 key：多個分頁同時寫不同對話時不會互相蓋掉 */
 const CONV_PREFIX = 'bc-c:';
+/** 每條對話看過的訊息 ID：{ ids, at }（at = 最後更新時間，超過上限時先丟最舊的） */
+const MSG_PREFIX = 'bc-m:';
+/** 最多記幾條對話的訊息 ID */
+export const MSG_CONV_CAP = 500;
 const PREFS_KEY = 'bc-prefs-v1';
 /** 選項頁按「清除」的時間：開著的分頁收到後，在使用者換到下一條對話前都不再寫入（不會馬上把剛清掉的存回去） */
 const CLEARED_KEY = 'bc-cleared';
@@ -55,7 +60,10 @@ export async function saveConv(c: Conv, notAfter?: number): Promise<Conv | null>
       if (cur && c.deleted === undefined) {
         if (cur.deleted !== undefined) {
           if (notAfter !== undefined && cur.deleted >= notAfter) return cur;
-        } else next = { ...c, parentId: cur.parentId ?? c.parentId, seenAt: cur.seenAt, title: c.title ?? cur.title };
+        } else {
+          const { inferred: _, ...rest } = c;
+          next = { ...rest, ...pickParent(cur, c.parentId, !!c.inferred), seenAt: cur.seenAt, title: c.title ?? cur.title };
+        }
       }
       await chrome.storage.local.set({ [key]: next });
       return next;
@@ -66,6 +74,40 @@ export async function saveConv(c: Conv, notAfter?: number): Promise<Conv | null>
   };
   // 所有 ChatGPT 分頁同源，用 Web Locks 讓「讀、檢查、寫」一次只有一個分頁在做
   return navigator.locks ? navigator.locks.request(`bc-conv:${c.id}`, run) : run();
+}
+
+/** 讀全部訊息 ID 索引；超過上限時刪掉最久沒更新的 */
+export async function loadMsgs(): Promise<MsgIndex> {
+  let all: Record<string, unknown>;
+  try {
+    all = await chrome.storage.local.get(null);
+  } catch (e) {
+    warn(e);
+    return {};
+  }
+  const rows: [string, string[], number][] = [];
+  for (const [k, v] of Object.entries(all)) {
+    if (!k.startsWith(MSG_PREFIX)) continue;
+    const id = k.slice(MSG_PREFIX.length);
+    const o = v as { ids?: unknown; at?: unknown } | null;
+    if (!isValidId(id) || !o || !Array.isArray(o.ids)) continue;
+    rows.push([id, o.ids.filter(isValidMsgId).slice(0, MSG_CAP), typeof o.at === 'number' ? o.at : 0]);
+  }
+  rows.sort((a, b) => b[2] - a[2]);
+  const drop = rows.slice(MSG_CONV_CAP).map(([id]) => MSG_PREFIX + id);
+  if (drop.length) void chrome.storage.local.remove(drop).catch(warn);
+  return Object.fromEntries(rows.slice(0, MSG_CONV_CAP).map(([id, ids]) => [id, ids]));
+}
+
+/** 存一條對話的訊息 ID（清除後或外掛關閉時不寫） */
+export async function saveMsgs(id: string, ids: string[]): Promise<void> {
+  try {
+    const r = await chrome.storage.local.get([CLEARED_KEY, ENABLED_KEY]);
+    if (r[ENABLED_KEY] === false || (typeof r[CLEARED_KEY] === 'number' && Date.now() - r[CLEARED_KEY] < 2000)) return;
+    await chrome.storage.local.set({ [MSG_PREFIX + id]: { ids, at: Date.now() } });
+  } catch (e) {
+    warn(e);
+  }
 }
 
 export async function removeConv(id: string): Promise<void> {

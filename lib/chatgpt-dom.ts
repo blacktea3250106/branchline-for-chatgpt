@@ -5,6 +5,8 @@ import { isValidId, type Observation } from './tree';
 const SEL = {
   /** 每則助理回答都帶這個屬性，值是所屬對話 ID（草稿是 local-chatgpt:<uuid>） */
   convAttr: 'data-chatgpt-selection-conversation-id',
+  /** 每則助理回答的訊息 ID；分支複製來的訊息和父對話相同（2026-11-07 在有／沒有「接續自」連結的兩種帳號都實測） */
+  msgAttr: 'data-chatgpt-selection-message-id',
   /** 一個對話的捲動容器。站內切換後舊對話的容器只是 display:none，所以一定要先用 ID 鎖定 */
   thread: '.thread-scroll-container',
   turn: '[data-turn-key]',
@@ -129,6 +131,17 @@ export function readConversation(id: string, allowDocTitle = false): Observation
   }
   // 分頁標題只在對話已穩定顯示後才採用：站內切換的瞬間它可能還是上一條的標題
   return { id, parentId, title: titleOf(id) ?? (allowDocTitle ? documentTitle() : null) };
+}
+
+/** 目前畫面上這條對話的訊息 ID（虛擬捲動只渲染一部分，所以只是看得到的那些） */
+export function messageIdsOf(id: string): string[] {
+  const out: string[] = [];
+  for (const e of document.querySelectorAll(`[${SEL.convAttr}="${CSS.escape(id)}"][${SEL.msgAttr}]`)) {
+    if (e.getClientRects().length === 0) continue;
+    const m = e.getAttribute(SEL.msgAttr);
+    if (m && !out.includes(m)) out.push(m);
+  }
+  return out;
 }
 
 /** 切到某條對話：優先點左欄的連結（單頁切換，不重新載入），沒有才整頁導向。一律是同站的 /c/<id>。 */

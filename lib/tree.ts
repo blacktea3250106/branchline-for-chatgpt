@@ -13,6 +13,8 @@ export interface Conv {
    * 判斷錯了也能完整復原：之後再讀到這條對話，就拿掉墓碑，樹回到原樣（子分支的父 ID 從沒被改寫）。
    */
   deleted?: number;
+  /** 父對話是比對訊息 ID 推斷的（頁面沒有「接續自」連結時）；之後讀到連結或更好的比對可以改寫 */
+  inferred?: true;
 }
 
 export type Store = Record<string, Conv>;
@@ -22,6 +24,8 @@ export interface Observation {
   id: string;
   parentId: string | null;
   title: string | null;
+  /** parentId 來自訊息 ID 比對，不是頁面上的「接續自」連結 */
+  inferred?: boolean;
 }
 
 /** 是否為墓碑（已在 ChatGPT 被刪除） */
@@ -43,7 +47,26 @@ export const get = (store: Store, id: string): Conv | undefined =>
   Object.prototype.hasOwnProperty.call(store, id) ? store[id] : undefined;
 
 const sameConv = (a: Conv, b: Conv) =>
-  a.parentId === b.parentId && a.title === b.title && a.seenAt === b.seenAt && a.deleted === b.deleted;
+  a.parentId === b.parentId &&
+  a.title === b.title &&
+  a.seenAt === b.seenAt &&
+  a.deleted === b.deleted &&
+  a.inferred === b.inferred;
+
+/**
+ * 決定父對話：已存的父關係原則上不改（讀到不同的值多半是誤讀，也避免兩個分頁互相蓋寫）。
+ * 例外：已存的是推斷來的，可以被「接續自」連結、或新的推斷改寫（多造訪幾條後比對更準）。
+ * 連結來的父關係不會被推斷蓋掉。
+ */
+export function pickParent(
+  old: { parentId: string | null; inferred?: true } | undefined,
+  parentId: string | null,
+  inferred: boolean,
+): { parentId: string | null; inferred?: true } {
+  if (old?.parentId && !(old.inferred && parentId)) return { parentId: old.parentId, ...(old.inferred && { inferred: true }) };
+  if (!parentId) return { parentId: null };
+  return { parentId, ...(inferred && { inferred: true }) };
+}
 
 /**
  * 合併一次觀察。規則：只新增、不清除——「這次沒讀到」不等於「沒有」。
@@ -58,8 +81,7 @@ export function mergeObservation(store: Store, o: Observation, now: number): Sto
   const parentId = p && p !== o.id && isValidId(p) && (isDraft(o.id) || !isDraft(p)) ? p : null;
   const next: Conv = {
     id: o.id,
-    // 已存的父對話不改：分支的父關係不會變，讀到不同的值多半是誤讀，不讓它覆寫（也避免兩個分頁互相蓋寫）
-    parentId: old?.parentId ?? parentId,
+    ...pickParent(old, parentId, !!o.inferred),
     title: o.title ?? old?.title ?? null,
     seenAt: old?.seenAt ?? now,
   };
@@ -74,7 +96,9 @@ export function mergeObservation(store: Store, o: Observation, now: number): Sto
 export function promoteDraft(store: Store, draft: Conv, realId: string): Store {
   if (!isValidId(realId) || isDraft(realId) || get(store, realId)) return store;
   if (!draft.parentId || draft.parentId === realId) return store;
-  return { ...store, [realId]: { id: realId, parentId: draft.parentId, title: null, seenAt: draft.seenAt } };
+  const c: Conv = { id: realId, parentId: draft.parentId, title: null, seenAt: draft.seenAt };
+  if (draft.inferred) c.inferred = true;
+  return { ...store, [realId]: c };
 }
 
 /** 結構圖認得這條：有存它，或有別條把它當成父 */
@@ -99,6 +123,7 @@ export function markDeleted(store: Store, id: string, now: number): { store: Sto
   // 沒存過、但被別條當成父的對話（在 R 開分支時 R 還沒有子分支，所以沒存）也要能標成刪除
   if (!c ? !isKnown(store, id) : isTomb(c)) return { store, saved: null };
   const t: Conv = { id, parentId: c?.parentId ?? null, title: null, seenAt: c?.seenAt ?? now, deleted: now };
+  if (c?.inferred) t.inferred = true;
   return { store: { ...store, [id]: t }, saved: t };
 }
 
@@ -240,7 +265,70 @@ export function parseConv(v: unknown): Conv | null {
   }
   const title = typeof o.title === 'string' ? o.title.slice(0, 200) : null;
   const seenAt = typeof o.seenAt === 'number' && Number.isFinite(o.seenAt) ? o.seenAt : 0;
+  const inf = parentId && o.inferred === true ? ({ inferred: true } as const) : {};
   if (typeof o.deleted === 'number' && Number.isFinite(o.deleted))
-    return { id: o.id, parentId, title: null, seenAt, deleted: o.deleted };
-  return { id: o.id, parentId, title, seenAt };
+    return { id: o.id, parentId, title: null, seenAt, deleted: o.deleted, ...inf };
+  return { id: o.id, parentId, title, seenAt, ...inf };
+}
+
+// ---- 用訊息 ID 推斷父對話 ----
+// 有些帳號的 ChatGPT 版本在分支裡不顯示「接續自」連結。分支會複製父對話到分叉點為止的訊息，
+// 複製來的訊息 ID 和父對話相同（頁面元素上的 data-chatgpt-selection-message-id），
+// 所以「共用訊息最多、而且比較早建立的那條」就是直接父對話（祖父也共用，但共用得比較少）。
+
+/** 每條對話看過的訊息 ID（只是編號，不含內容） */
+export type MsgIndex = Record<string, string[]>;
+
+/** 每條對話最多記幾個訊息 ID（分叉點在更後面的超長對話會比對不到，退回只看連結） */
+export const MSG_CAP = 300;
+
+const MSG_ID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+export const isValidMsgId = (v: unknown): v is string => typeof v === 'string' && MSG_ID_RE.test(v);
+
+/** 併入這次看到的訊息 ID（虛擬捲動一次只渲染幾個回合，所以累積）。沒有新的就回傳原陣列。 */
+export function addMessages(prev: readonly string[] | undefined, seen: readonly string[]): string[] {
+  const base = prev ? [...prev] : [];
+  const have = new Set(base);
+  for (const m of seen) if (isValidMsgId(m) && !have.has(m) && base.length < MSG_CAP) (have.add(m), base.push(m));
+  return prev && base.length === prev.length ? (prev as string[]) : base;
+}
+
+/**
+ * 對話的建立時間（秒）：ChatGPT 對話 ID 的前 8 個十六進位字元是 Unix 秒（實測 2026-11-07）。
+ * 草稿一定是最新的。
+ */
+export const createdAt = (id: string): number => (isDraft(id) ? Infinity : parseInt(id.slice(0, 8), 16));
+
+/**
+ * 推斷 id 的父對話：比它早建立、共用訊息最多的那條。沒有回傳 null。
+ * 同分取最早建立的：共用一樣多，代表分叉點在較早那條就已經有了（例如從只有一則回答的主線開支線，
+ * 主線的第一條支線也有那則回答），從較早那條分出來才是合理的解釋。
+ */
+export function inferParent(index: MsgIndex, id: string): string | null {
+  const mine = Object.prototype.hasOwnProperty.call(index, id) ? new Set(index[id]) : null;
+  if (!mine?.size) return null;
+  const t = createdAt(id);
+  let best: string | null = null;
+  let bestN = 0;
+  for (const [other, ids] of Object.entries(index)) {
+    if (other === id || isDraft(other) || !(createdAt(other) < t)) continue;
+    let n = 0;
+    for (const m of ids) if (mine.has(m)) n++;
+    if (n > bestN || (n === bestN && n > 0 && best && createdAt(other) < createdAt(best))) {
+      best = other;
+      bestN = n;
+    }
+  }
+  return best;
+}
+
+/** 比 id 晚建立、推斷出的父對話正是 id 的那些（先造訪支線、後造訪父對話時用） */
+export function inferChildren(index: MsgIndex, id: string): string[] {
+  const mine = Object.prototype.hasOwnProperty.call(index, id) ? new Set(index[id]) : null;
+  if (!mine?.size) return [];
+  const t = createdAt(id);
+  return Object.entries(index)
+    .filter(([k, ids]) => k !== id && !isDraft(k) && createdAt(k) > t && ids.some((m) => mine.has(m)))
+    .map(([k]) => k)
+    .filter((k) => inferParent(index, k) === id);
 }

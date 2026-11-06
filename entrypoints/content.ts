@@ -6,6 +6,7 @@ import {
   headerActionsLeft,
   inSidebar,
   isHomePage,
+  messageIdsOf,
   onDeleteConfirmed,
   mainAvailableWidth,
   nativeRightPanelOpen,
@@ -21,11 +22,14 @@ import {
   sidebarConversationIds,
   titleOf,
 } from '@/lib/chatgpt-dom';
-import { load, loadEnabled, loadPrefs, onExternalChange, removeConv, saveConv, savePrefs, type ExternalChange, type Prefs } from '@/lib/store';
+import { load, loadEnabled, loadMsgs, loadPrefs, onExternalChange, removeConv, saveConv, saveMsgs, savePrefs, type ExternalChange, type Prefs } from '@/lib/store';
 import {
+  addMessages,
   buildTree,
   countNodes,
   get,
+  inferChildren,
+  inferParent,
   isDraft,
   isKnown,
   isRelevant,
@@ -37,6 +41,7 @@ import {
   shouldPromote,
   type Submitted,
   type Conv,
+  type MsgIndex,
   type Store,
   type TreeNode,
 } from '@/lib/tree';
@@ -112,7 +117,12 @@ export default defineContentScript({
     let applyExternal: (ch: ExternalChange) => void = (ch) => pending?.push(ch);
     offs.push(onExternalChange((ch) => applyExternal(ch)));
 
-    let [store, prefs, enabled]: [Store, Prefs, boolean] = await Promise.all([load(), loadPrefs(), loadEnabled()]);
+    let [store, prefs, enabled, msgs]: [Store, Prefs, boolean, MsgIndex] = await Promise.all([
+      load(),
+      loadPrefs(),
+      loadEnabled(),
+      loadMsgs(),
+    ]);
     if (disposed) return;
     /** 過期墓碑只在開啟狀態下清一次（關閉時不寫資料） */
     let pruned = false;
@@ -305,6 +315,24 @@ export default defineContentScript({
         }
         visit.reads++;
         brokenSince = 0;
+        // 記下這條看得到的訊息 ID；頁面沒有「接續自」連結時，用它比對出父對話（草稿只放記憶體）
+        const paused = pausedVisit !== undefined && visit.id === pausedVisit;
+        const ids = addMessages(msgs[id], messageIdsOf(id));
+        if (ids !== msgs[id] && !paused) {
+          msgs = { ...msgs, [id]: ids };
+          if (!isDraft(id)) void saveMsgs(id, ids);
+        }
+        if (!o.parentId) {
+          const p = inferParent(msgs, id);
+          if (p) {
+            o.parentId = p;
+            o.inferred = true;
+          }
+        }
+        // 先造訪支線、後造訪父對話：支線也在這時接上
+        if (!isDraft(id) && !paused)
+          for (const k of inferChildren(msgs, id))
+            if (get(store, k)?.parentId !== id) put(mergeObservation(store, { id: k, parentId: id, title: null, inferred: true }, now), k);
         if (isDraft(id)) {
           const d = mergeObservation(drafts.has(id) ? { [id]: drafts.get(id)! } : {}, o, Date.now())[id];
           if (d) drafts.set(id, d);
@@ -416,6 +444,7 @@ export default defineContentScript({
     applyExternal = (ch) => {
       if (ch.cleared) {
         store = {};
+        msgs = {};
         seenTitles.clear();
         pausedVisit = visit.id;
       }

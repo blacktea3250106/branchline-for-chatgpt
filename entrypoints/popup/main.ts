@@ -17,15 +17,6 @@ const sw = document.getElementById('bc-enabled') as HTMLButtonElement;
 const show = (on: boolean) => sw.setAttribute('aria-checked', String(on));
 
 // 讀到實際狀態前不能按，也不播切換動畫（不會先閃一下「開」）
-/** 小費連結（Ko-fi 等）：填上網址才會啟用；只是一般連結，點了才開新分頁，不載入任何第三方程式 */
-const TIP_URL = '';
-const tip = document.getElementById('bc-tip') as HTMLAnchorElement;
-if (TIP_URL) {
-  tip.href = TIP_URL;
-  tip.removeAttribute('aria-disabled');
-  tip.removeAttribute('title');
-}
-
 void loadEnabled().then((on) => {
   show(on);
   sw.disabled = false;

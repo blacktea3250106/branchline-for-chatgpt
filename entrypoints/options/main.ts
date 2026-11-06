@@ -1,6 +1,11 @@
 // 選項頁：說明保存了什麼，並提供清除全部資料的方式。
 import tokensCss from '@/design/tokens.css?inline';
 import { clearAll } from '@/lib/store';
+import { t, type MsgKey } from '@/lib/i18n';
+
+document.documentElement.lang = chrome.i18n.getUILanguage();
+document.title = t('optionsTitle');
+for (const el of document.querySelectorAll<HTMLElement>('[data-i18n]')) el.textContent = t(el.dataset.i18n as MsgKey);
 
 const style = document.createElement('style');
 style.textContent = `${tokensCss}
@@ -20,13 +25,13 @@ applyTheme();
 const btn = document.getElementById('bc-clear') as HTMLButtonElement;
 const status = document.getElementById('bc-status') as HTMLElement;
 btn.addEventListener('click', async () => {
-  if (!confirm('清除所有分支紀錄？這個動作無法復原。')) return;
+  if (!confirm(t('clearConfirm'))) return;
   btn.disabled = true;
   try {
     await clearAll();
-    status.textContent = '已清除。';
+    status.textContent = t('cleared');
   } catch {
-    status.textContent = '清除失敗，請重新整理後再試。';
+    status.textContent = t('clearFailed');
   } finally {
     btn.disabled = false;
   }

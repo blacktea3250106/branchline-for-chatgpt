@@ -32,10 +32,6 @@
   /* 工具列小視窗的字與版面：沿用 macOS 選單列面板的慣例（中等字重，小視窗是 Chrome 的系統層級介面）；
      圖示用外掛本身的 App 圖示，讓人一眼知道是哪個外掛，不必再寫名稱 */
   --bc-pop-row:52px;
-  --bc-pop-footer-margin:0 16px;
-  --bc-pop-footer-pad:8px 0 12px;
-  --bc-pop-link-pad:8px;
-  --bc-pop-arrow:12px;
   --bc-pop-w:232px;
   --bc-pop-pad:14px 24px;
   --bc-pop-gap:8px;

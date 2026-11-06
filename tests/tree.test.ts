@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import {
+  addMessages,
   buildTree,
+  inferChildren,
+  inferParent,
   countNodes,
   get,
   isRelevant,
@@ -269,5 +272,65 @@ describe('父對話不被覆寫', () => {
 
   it('正式對話的父不會是草稿', () => {
     expect(mergeObservation({}, obs(B, D(1)), 1)[B]?.parentId).toBeNull();
+  });
+});
+
+describe('用訊息 ID 推斷父對話', () => {
+  // 對話 ID 前 8 碼是建立時間（秒）：A 最早、B 是 A 的分支、C 是 B 的分支
+  const A = '6aee0c13-6a54-83e8-a779-7c52aa01a030';
+  const B = '6aee0c73-445c-83ee-baeb-c84b1c554eb8';
+  const C = '6aee0d00-445c-83ee-baeb-c84b1c554eb8';
+  const D = 'local-chatgpt:a8a5ee0c-e410-4958-b0a4-98690c8289cd';
+  const m = (n: number) => `00000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
+  const idx = {
+    [A]: [m(1), m(2), m(3)],
+    [B]: [m(1), m(2), m(4)],
+    [C]: [m(1), m(2), m(4), m(5)],
+  };
+
+  it('取共用最多、比較早建立的那條（祖父共用較少，不會被選）', () => {
+    expect(inferParent(idx, B)).toBe(A);
+    expect(inferParent(idx, C)).toBe(B);
+    expect(inferParent(idx, A)).toBeNull();
+  });
+
+  it('草稿永遠最新，可以推斷出父對話', () => {
+    expect(inferParent({ ...idx, [D]: [m(1), m(2), m(4), m(5)] }, D)).toBe(C);
+  });
+
+  it('後造訪父對話時找得到子分支', () => {
+    expect(inferChildren(idx, A)).toEqual([B]);
+    expect(inferChildren(idx, B)).toEqual([C]);
+  });
+
+  it('共用一樣多時取最早建立的（從主線開第二條支線，不會掛到第一條支線底下）', () => {
+    const E = '6aee0e00-445c-83ee-baeb-c84b1c554eb8';
+    const i2 = { [A]: [m(1)], [B]: [m(1), m(4)], [E]: [m(1), m(6)] };
+    expect(inferParent(i2, E)).toBe(A);
+  });
+
+  it('沒有共用訊息就不推斷', () => {
+    expect(inferParent({ [A]: [m(9)], [B]: [m(8)] }, B)).toBeNull();
+  });
+
+  it('推斷的父可被連結改寫，連結的父不會被推斷改寫', () => {
+    let s = mergeObservation({}, { id: C, parentId: A, title: null, inferred: true }, 1);
+    expect(s[C]).toMatchObject({ parentId: A, inferred: true });
+    s = mergeObservation(s, { id: C, parentId: B, title: null }, 2);
+    expect(s[C]!.parentId).toBe(B);
+    expect(s[C]!.inferred).toBeUndefined();
+    s = mergeObservation(s, { id: C, parentId: A, title: null, inferred: true }, 3);
+    expect(s[C]!.parentId).toBe(B);
+  });
+
+  it('addMessages 累積、去重、過濾格式不對的 ID', () => {
+    const a = addMessages(undefined, [m(1), m(1), 'x']);
+    expect(a).toEqual([m(1)]);
+    expect(addMessages(a, [m(1)])).toBe(a);
+    expect(addMessages(a, [m(2)])).toEqual([m(1), m(2)]);
+  });
+
+  it('parseConv 保留 inferred', () => {
+    expect(parseConv({ id: B, parentId: A, title: null, seenAt: 1, inferred: true })?.inferred).toBe(true);
   });
 });

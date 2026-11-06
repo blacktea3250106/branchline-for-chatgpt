@@ -1,0 +1,17 @@
+{
+  "extDescription": { "message": "在 ChatGPT 右側顯示分支對話結構圖，一鍵切回主線。" },
+  "newBranch": { "message": "新分支" },
+  "untitled": { "message": "對話" },
+  "mapLabel": { "message": "分支結構" },
+  "collapseNode": { "message": "收合 $NAME$", "placeholders": { "name": { "content": "$1" } } },
+  "expandNode": { "message": "展開 $NAME$", "placeholders": { "name": { "content": "$1" } } },
+  "hideMap": { "message": "收起分支結構" },
+  "showMap": { "message": "展開分支結構" },
+  "optionsTitle": { "message": "BranchLine 設定" },
+  "optionsStored": { "message": "外掛只在這台電腦的 Chrome 裡保存：有分支關係的對話 ID、父對話 ID、對話標題、第一次看到的時間、在 ChatGPT 刪除的時間（刪除後只留 ID，不留標題；沒有子分支的，超過 30 天後在下次打開 ChatGPT 時清掉，還有子分支的會保留）、造訪過的對話的訊息 ID（只是編號，用來比對分支從哪條分出來，最多 500 條），以及結構圖是否收起、外掛是否開啟。不保存訊息內容，也不會傳送到任何地方。外掛不在無痕視窗執行。同一個 Chrome 設定檔裡的 ChatGPT 帳號共用這份資料。" },
+  "optionsDelete": { "message": "在這個瀏覽器裡用滑鼠從 ChatGPT 選單刪除的對話，會同時從所有分頁的結構圖移除。在其他裝置、設定裡的「刪除所有對話」、用鍵盤刪除、或在外掛關閉期間刪除的，外掛看不到刪除動作，會在你下次打開那條時才移除。" },
+  "clearButton": { "message": "清除所有分支紀錄" },
+  "clearConfirm": { "message": "清除所有分支紀錄？這個動作無法復原。" },
+  "cleared": { "message": "已清除。" },
+  "clearFailed": { "message": "清除失敗，請重新整理後再試。" }
+}

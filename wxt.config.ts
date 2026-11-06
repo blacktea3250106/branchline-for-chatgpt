@@ -3,7 +3,8 @@ import { defineConfig } from 'wxt';
 export default defineConfig({
   manifest: {
     name: 'BranchLine for ChatGPT',
-    description: '在 ChatGPT 右側顯示分支對話結構圖',
+    description: '__MSG_extDescription__',
+    default_locale: 'en',
     // 明確宣告工具列 action，避免 Chrome 將未宣告 action 的圖示在非 ChatGPT 頁面灰化。
     // 這不會擴大 content_scripts 的網站存取範圍。
     action: {
