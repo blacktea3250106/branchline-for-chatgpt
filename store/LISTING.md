@@ -50,9 +50,10 @@ BranchLine 把 ChatGPT 原生的分支畫成樹狀結構圖，固定顯示在畫
 - 遠端程式碼：否
 - 資料用途：不勾選任何類別（資料只在本機處理，不傳出裝置）
 - 三項聲明全部勾選（不販售、不用於無關用途、不用於信用評估）
-- 隱私權政策網址：（待定，需公開可存取的網址，內容即 `PRIVACY.md`）
+- 隱私權政策網址：https://github.com/blacktea3250106/branchline-for-chatgpt/blob/main/PRIVACY.md
 
 ## 發布設定
 
 - 公開範圍：公開
 - 地區：所有地區
+- 支援網站：https://github.com/blacktea3250106/branchline-for-chatgpt/issues

@@ -33,4 +33,4 @@ BranchLine for ChatGPT（以下稱「本外掛」）只在 `chatgpt.com` 上執�
 
 ## 聯絡
 
-有疑問請在本專案的 GitHub Issues 提出。
+有疑問請在 [GitHub Issues](https://github.com/blacktea3250106/branchline-for-chatgpt/issues) 提出。
