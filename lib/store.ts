@@ -1,7 +1,7 @@
 // chrome.storage.local 的讀寫。
 // 保存的資料（只存在這台電腦，不傳到任何地方）：有分支關係的對話 ID、父對話 ID、對話標題、第一次看到的時間，
 // 造訪過的對話的訊息 ID（只是編號，用來在頁面沒有「接續自」連結時比對出父對話），
-// 以及結構圖是否收起、外掛是否開啟。不存訊息內容。外掛不在無痕視窗執行（manifest incognito: not_allowed）。
+// 以及結構圖是否收起、外掛是否開啟。不存訊息文字（對話標題是 ChatGPT 依對話產生的）。外掛不在無痕視窗執行（manifest incognito: not_allowed）。
 import { addMessages, isValidId, isValidMsgId, MSG_CAP, parseConv, pickParent, type Conv, type MsgIndex, type Store } from './tree';
 
 /** 每條對話一個 key：多個分頁同時寫不同對話時不會互相蓋掉 */
