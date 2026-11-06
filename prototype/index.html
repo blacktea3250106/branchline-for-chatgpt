@@ -1,0 +1,257 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BranchLine 原型</title>
+<link rel="stylesheet" href="../design/tokens.css">
+<link rel="stylesheet" href="../design/branch-map.css">
+<style>
+/* 顏色全部照 ChatGPT：純黑底、半透明白當層次、沒有品牌色（實測自你的 ChatGPT 頁面） */
+*{box-sizing:border-box}
+body{margin:0;background:var(--bc-bg);color:var(--bc-text);font:16px/1.75 ui-sans-serif,system-ui,-apple-system,"PingFang TC",sans-serif}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;padding:0}
+:focus-visible{outline:2px solid #fff;outline-offset:2px}
+.app{display:flex;height:100dvh}
+.side{width:260px;flex-shrink:0;background:var(--bc-bg);border-right:1px solid var(--bc-faint);padding:12px 8px;overflow:auto}
+.side .brand{padding:8px 10px;font-weight:600}
+.chat{display:block;width:100%;text-align:left;padding:7px 10px;border-radius:8px;font-size:14px;color:rgba(237,237,237,.85);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.chat:hover{background:var(--bc-hover)}.chat.on{background:var(--bc-faint);color:#fff}
+.main{flex:1;min-width:0;display:flex;flex-direction:column}
+.top{height:56px;display:flex;align-items:center;padding:0 20px;color:var(--bc-text);font-size:17px;flex-shrink:0}
+.view{flex:1;overflow-y:auto}
+.col{max-width:768px;margin:0 auto;padding:12px 24px 40px}
+.msg{margin:0 0 32px}
+.msg.user{display:flex;justify-content:flex-end;flex-direction:column;align-items:flex-end}
+.msg.user .t{background:var(--bc-surface);border-radius:22px;padding:8px 18px;max-width:75%}
+.t p{margin:0 0 18px;line-height:1.8}.t p:last-child{margin:0}
+.mh{font-size:22px;margin:8px 0 14px;line-height:1.5}
+.mq{max-width:75%;margin:0 0 4px;padding:6px 12px;border-radius:12px;background:var(--bc-faint);color:var(--bc-mute);font-size:13px;line-height:1.5}
+.acts{margin-top:6px;display:flex;gap:4px;align-items:center}
+.acts button{font-size:13px;color:var(--bc-mute);padding:3px 9px;border-radius:8px}
+.acts button:hover{background:var(--bc-hover);color:#fff}
+.divider{display:flex;align-items:center;gap:8px;justify-content:center;margin:0 0 32px;font-size:13px;color:var(--bc-mute)}
+.divider::before,.divider::after{content:"";flex:1;border-top:1px solid var(--bc-line)}
+.divider .link{color:#4f86e0}.divider .link:hover{text-decoration:underline}
+.comp{padding:6px 24px 8px;flex-shrink:0}
+.comp form{max-width:768px;margin:auto;display:flex;flex-wrap:wrap;align-items:flex-end;gap:8px;background:var(--bc-surface);border-radius:28px;padding:10px 10px 8px 20px}
+.qcard{position:relative;width:100%;max-width:260px;background:rgba(0,0,0,.45);border:1px solid var(--bc-line);border-radius:14px;padding:8px 12px 6px;font-size:12px;color:var(--bc-text);line-height:1.5}
+.qcard small{display:block;color:var(--bc-dim);margin-top:4px}
+.qcard button{position:absolute;right:-6px;top:-6px;width:20px;height:20px;border-radius:50%;background:#e8e8e8;color:#000;font-size:12px;line-height:1}
+.comp textarea{flex:1;min-width:0;background:none;border:0;color:inherit;font:inherit;resize:none;height:28px;max-height:140px;padding:2px 0;outline:0;margin:4px 0}
+.send{width:34px;height:34px;border-radius:50%;background:#fff;color:#000}
+.send:disabled{background:rgba(255,255,255,.3);color:rgba(0,0,0,.5);cursor:default}
+.foot{text-align:center;font-size:11px;color:var(--bc-dim);margin:6px 0 0}
+.pop{position:fixed;z-index:30;background:#1c1c1c;border:1px solid var(--bc-line);border-radius:10px;box-shadow:0 6px 20px #000a;padding:4px;font-size:14px}
+.pop button{display:block;width:100%;text-align:left;padding:5px 12px;border-radius:7px;white-space:nowrap}
+.pop button:hover{background:var(--bc-faint)}.pop button:disabled{color:var(--bc-dim);cursor:default;background:none}
+.pop .row{display:flex;gap:2px}.pop .row button{width:auto}
+.pop .hint{padding:2px 12px 4px;font-size:12px;color:var(--bc-dim)}
+
+@media(max-width:700px){.side{display:none}}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="side" id="side" aria-label="聊天清單"></aside>
+  <main class="main">
+    <header class="top" id="title"></header>
+    <div class="view" id="view"><div class="col" id="col"></div></div>
+    <div class="comp">
+      <form id="form">
+        <div class="qcard" id="qcard" hidden></div>
+        <textarea id="input" rows="1" placeholder="詢問任何問題" aria-label="輸入訊息"></textarea>
+        <button class="send" id="send" type="submit" aria-label="送出" disabled>↑</button>
+      </form>
+      <p class="foot">前端模擬原型，沒有連接 ChatGPT</p>
+    </div>
+  </main>
+  <nav class="bm" id="map" aria-label="分支結構"></nav>
+</div>
+<div class="pop" id="pop" hidden></div>
+<script>
+'use strict';
+const $=id=>document.getElementById(id);
+const el=(t,c,x)=>{const e=document.createElement(t);if(c)e.className=c;if(x!=null)e.textContent=x;return e};
+const cut=(s,n)=>{const a=Array.from(s);return a.length>n?a.slice(0,n).join('')+'…':s};
+const M=(id,role,paras,h)=>({id,role,paras,h});
+
+/* ---------- 模擬資料 ----------
+   對話只記：parent（從哪條對話分出來）、forkAnswer（從 parent 的第幾則回答分出來）。
+   這兩件事 ChatGPT 本來就存了（「接續自」連結 + 複製來的訊息），外掛只是讀出來。 */
+const A1=M('a1','assistant',['閱讀一篇長回答時，我們常會遇到值得停下來研究的詞。理解上下文，就是先知道這個詞出現在哪一段、正在回應什麼問題。','可以把上下文想像成桌上攤開的資料：資料一多，桌面就放不下，需要決定先收起哪些。','記憶則像稍後還能回頭找到的筆記。收起來的資料若寫成筆記，之後仍能找回重點。'],'理解上下文與記憶');
+const Q1=M('q1','user',['請用一篇短文章說明上下文與記憶。']);
+const Q2=M('q2','user',['那實際使用時有什麼要注意？']);
+const A2=M('a2','assistant',['重點是知道什麼該留在桌上、什麼該寫進筆記。太早收起會找不到，太晚收起會塞滿。']);
+const Bq=M('bq','user',['收起資料和寫成筆記，兩者怎麼銜接？']);
+const Ba=M('ba','assistant',['銜接點在「收起」這個動作：桌面放不下時，先摘要成筆記，需要時再拿回來。']);
+let chats={
+ root:{id:'root',title:'理解上下文與記憶',parent:null,forkAnswer:null,messages:[Q1,A1,Q2,A2],order:0},
+ b1:{id:'b1',parent:'root',forkAnswer:1,messages:[Q1,A1,Bq,Ba],order:1},
+ b2:{id:'b2',parent:'b1',forkAnswer:2,messages:[Q1,A1,Bq,Ba,M('c1','user',['摘要要寫多短才夠用？']),M('c2','assistant',['一兩句，能讓你一眼想起重點就夠。'])],order:2},
+ b3:{id:'b3',parent:'root',forkAnswer:2,messages:[Q1,A1,Q2,A2,M('d1','user',['太早收起會怎樣？']),M('d2','assistant',['會在需要時找不到線索，只好重新問一次。'])],order:3}
+};
+let active='root',n=10,scrollOf={};
+const openState=new Map();   // 使用者手動收放的狀態：id → 展開與否
+const draftQuote={};   // 每條對話輸入框上方的「所選內容」
+
+const ansCount=c=>c.messages.filter(m=>m.role==='assistant').length;
+function prefixLen(c){let k=0;for(let i=0;i<c.messages.length;i++)if(c.messages[i].role==='assistant'&&++k===c.forkAnswer)return i+1;return c.messages.length}
+const ownCount=c=>c.parent?c.messages.length-prefixLen(c):c.messages.length;
+const emptyBranch=c=>c.parent&&ownCount(c)===0;      // 還沒送出第一則訊息
+const shown=c=>!emptyBranch(c)||c.id===active;        // 結構圖：目前這條空分支也畫出來
+const chain=id=>{const r=[];for(let c=chats[id];c;c=c.parent?chats[c.parent]:null)r.unshift(c);return r};
+const rootOf=id=>chain(id)[0].id;
+const kidsOf=id=>Object.values(chats).filter(c=>c.parent===id&&shown(c)).sort((a,b)=>a.order-b.order);
+const count=id=>1+kidsOf(id).reduce((t,k)=>t+count(k.id),0);
+// ChatGPT 的命名：分支叫「分支 · 父標題」，每多一層多一個前綴
+const chatTitle=c=>c.parent?'分支 · '+chatTitle(chats[c.parent]):c.title;
+// 外掛的命名：這條自己第一個提問，才看得出在談什麼
+const ownQs=c=>c.messages.slice(c.parent?prefixLen(c):0).filter(m=>m.role==='user');
+function label(c){
+ if(!c.parent)return c.title;
+ return ownQs(c)[0]?.paras[0]||'新分支';   // 同名時不加記號：位置與順序已經區分
+}
+
+// ?stress：各種極端情況
+const POOL=['摘要要寫多短？','筆記要放在哪裡？','記憶會過期嗎？','什麼時候該收起資料？','重點和細節怎麼分？','要不要附上原文出處？','怎麼判斷哪些該留下？','舊筆記要定期整理嗎？','上下文滿了會發生什麼？','寫成筆記會漏掉什麼？','怎麼把筆記重新攤回桌面？','兩份筆記互相矛盾怎麼辦？'];
+function addStress(){
+ const add=(id,q,parent,fa)=>{const p=chats[parent];let k=0,cutAt=p.messages.length;p.messages.forEach((m,i)=>{if(m.role==='assistant'&&++k===fa)cutAt=i+1});chats[id]={id,parent,forkAnswer:fa,messages:[...p.messages.slice(0,cutAt),M(id+'q','user',[q]),M(id+'a','assistant',['回答：'+q])],order:++n}};
+ for(let i=1;i<=6;i++)add('s'+i,POOL[i%POOL.length],'root',1);
+ add('d1','怎麼判斷哪些該留下？','root',2);
+ for(let i=2;i<=7;i++)add('d'+i,POOL[(i+3)%POOL.length],'d'+(i-1),ansCount(chats['d'+(i-1)]));
+ add('long','這是一個非常非常長的提問用來測試結構圖會不會被撐破而且還包含 English_words_without_any_spaces_1234567890 與 😀 表情','root',2);
+ add('dup1','摘要要寫多短？','root',1);add('dup2','摘要要寫多短？','root',1);
+ for(let i=1;i<=18;i++)add('m'+i,POOL[(i*5)%POOL.length],i%3?'root':'m'+(i-1),i%3?1:ansCount(chats['m'+(i-1)]));
+}
+if(new URLSearchParams(location.search).has('stress'))addStress();
+
+/* ---------- 畫面 ---------- */
+function render(){
+ const c=chats[active],col=$('col');col.replaceChildren();$('title').textContent=chatTitle(c);
+ // 每一層祖先各有一條「接續自」分隔線（ChatGPT 原生）
+ const bounds={};
+ chain(active).slice(1).forEach(x=>{(bounds[prefixLen(x)]??=[]).push(chats[x.parent])});
+ const divider=p=>{const d=el('div','divider'),b=el('button','link',chatTitle(p));b.onclick=()=>go(p.id);d.append('⑂ 接續自 ',b);return d};
+ let k=0;
+ c.messages.forEach((m,i)=>{
+  (bounds[i]||[]).forEach(p=>col.append(divider(p)));
+  const d=el('section','msg '+m.role);
+  if(m.quote)d.append(el('div','mq','「'+cut(m.quote,60)+'」'));
+  const t=el('div','t');
+  if(m.h)d.append(el('h2','mh',m.h));
+  m.paras.forEach(p=>t.append(el('p',null,p)));d.append(t);
+  if(m.role==='assistant'){
+   const ord=++k,a=el('div','acts');d.dataset.k=ord;
+   const more=el('button',null,'⋯');more.title='更多動作';more.onclick=e=>nativeMenu(e,ord);
+   const plug=el('button','plug','↳ 分支');plug.title='外掛：在新對話中分支';plug.onclick=()=>branch(ord);
+   a.append(more,plug);d.append(a);
+  }
+  col.append(d);
+ });
+ (bounds[c.messages.length]||[]).forEach(p=>col.append(divider(p)));
+ renderQuote();side();map();
+}
+function side(){
+ const s=$('side');s.replaceChildren(el('div','brand','ChatGPT'));
+ Object.values(chats).filter(c=>!emptyBranch(c)).sort((a,b)=>b.order-a.order).forEach(c=>{const b=el('button','chat'+(c.id===active?' on':''),chatTitle(c));b.title=chatTitle(c);b.onclick=()=>go(c.id);s.append(b)});
+ s.querySelector('.on')?.scrollIntoView({block:'nearest'});
+}
+function map(){
+ const top=rootOf(active),total=count(top),pathSet=new Set(chain(active).map(c=>c.id));
+ const isOpen=id=>openState.has(id)?openState.get(id):(total<=14||pathSet.has(id));
+ const row=(c,depth)=>{
+  const li=el('li',c.parent?'bm-child'+(pathSet.has(c.id)?' bm-path':''):''),kids=kidsOf(c.id),r=el('div','bm-row'+(c.id===active?' bm-active':''));
+  const b=el('button','bm-node'+(c.parent?'':' bm-trunk')+(c.id===active?' bm-on':'')+(emptyBranch(c)?' bm-draft':''));
+  b.append(el('span',null,label(c)));b.title=label(c);b.dataset.id=c.id;b.onclick=()=>go(c.id);
+  r.append(b);li.append(r);
+  if(kids.length){
+   const wrap=el('div','bm-wrap'),ul=el('ul','bm-kids'+(depth>=3?' bm-flat':''));kids.forEach(k=>ul.append(row(k,depth+1)));wrap.append(ul);
+   const chev=el('button','bm-chev');chev.type='button';
+   // 只切換 class，不重畫，所以收放有動畫
+   const apply=()=>{const o=isOpen(c.id);wrap.classList.toggle('bm-closed',!o);chev.classList.toggle('bm-shut',!o);chev.setAttribute('aria-expanded',String(o));chev.setAttribute('aria-label',(o?'收合 ':'展開 ')+label(c))};
+   chev.onclick=()=>{openState.set(c.id,!isOpen(c.id));apply()};
+   b.addEventListener('keydown',e=>{if(e.key==='ArrowRight'){e.preventDefault();openState.set(c.id,true);apply()}else if(e.key==='ArrowLeft'){e.preventDefault();openState.set(c.id,false);apply()}});
+   r.append(chev);li.append(wrap);apply();
+  }
+  return li;
+ };
+ const u=el('ul');u.append(row(chats[top],0));
+ $('map').replaceChildren(u);
+ $('map').querySelector('.bm-on')?.scrollIntoView({block:'nearest'});
+}
+$('map').addEventListener('keydown',e=>{
+ if(e.key!=='ArrowDown'&&e.key!=='ArrowUp')return;
+ const ns=[...$('map').querySelectorAll('.bm-node')].filter(x=>!x.closest('.bm-wrap.bm-closed')),i=ns.indexOf(document.activeElement);
+ if(i<0)return;e.preventDefault();ns[Math.max(0,Math.min(ns.length-1,i+(e.key==='ArrowDown'?1:-1)))].focus();
+});
+function go(id,o={}){
+ if(!chats[id])return;
+ const old=chats[active];
+ if(old&&old.id!==id){scrollOf[old.id]=$('view').scrollTop;if(emptyBranch(old)){delete chats[old.id];delete draftQuote[old.id]}}  // 沒送出就離開：不留空分支
+ active=id;hidePop();
+ for(let c=chats[id];c&&c.parent;c=chats[c.parent])openState.set(c.parent,true);   // 切過去時，把通往它的路徑展開
+ if(!o.noPush&&location.hash!=='#'+id)history.pushState(null,'','#'+id);
+ render();$('view').scrollTop=scrollOf[id]??$('view').scrollHeight;
+}
+window.onpopstate=()=>{const id=location.hash.slice(1);if(chats[id])go(id,{noPush:true})};
+
+/* ---------- 開分支 ---------- */
+// 等同 ChatGPT「建立對話分支 › 在新對話中建立分支」：複製到這則回答為止的上文，開成新對話
+function branch(k,quote){
+ const p=chats[active],id='n'+(++n);let cnt=0,cutAt=p.messages.length;p.messages.forEach((m,i)=>{if(m.role==='assistant'&&++cnt===k)cutAt=i+1});
+ chats[id]={id,parent:p.id,forkAnswer:k,messages:p.messages.slice(0,cutAt),order:n};
+ if(quote)draftQuote[id]=quote;
+ go(id);$('input').focus();
+}
+// ChatGPT 原本的兩層選單
+function nativeMenu(e,k){
+ const p=$('pop'),r=e.currentTarget.getBoundingClientRect();
+ const show=()=>{p.replaceChildren();const h=el('div','hint','原生選單');const b=el('button',null,'建立對話分支  ›');b.onclick=sub;p.append(h,b)};
+ const sub=()=>{p.replaceChildren();const a=el('button',null,'在工作模式中建立分支');a.disabled=true;a.title='原型未模擬';const b=el('button',null,'在新對話中建立分支');b.onclick=()=>branch(k);p.append(a,b)};
+ show();p.hidden=false;p.style.left=r.left+'px';p.style.top=Math.max(8,r.top-p.offsetHeight-6)+'px';
+}
+
+/* ---------- 選字：ChatGPT 原生「問問 ChatGPT」，外掛補一顆「↳ 分支」 ---------- */
+let sel=null;
+function hidePop(){$('pop').hidden=true;sel=null}
+function capture(){
+ const s=getSelection();if(!s||s.isCollapsed||!s.rangeCount)return hidePop();
+ const r=s.getRangeAt(0),node=r.startContainer.nodeType===1?r.startContainer:r.startContainer.parentElement,msg=node?.closest('.msg.assistant');
+ const text=s.toString().trim();if(!msg||text.length<2)return hidePop();
+ sel={k:+msg.dataset.k,text};
+ const p=$('pop'),rs=r.getClientRects(),last=rs[rs.length-1]||r.getBoundingClientRect();
+ p.replaceChildren();const row=el('div','row'),ask=el('button',null,'問問 ChatGPT'),br=el('button','plug','↳ 分支');
+ ask.onclick=()=>{draftQuote[active]=sel.text;hidePop();getSelection().removeAllRanges();renderQuote();$('input').focus()};   // 原生：提問留在同一個對話
+ br.onclick=()=>{const q=sel.text,k=sel.k;hidePop();getSelection().removeAllRanges();branch(k,q)};                              // 外掛：同樣的引用，但開成分支
+ row.append(ask,br);p.append(row);p.hidden=false;
+ p.style.left=Math.max(8,Math.min(innerWidth-p.offsetWidth-8,last.right-p.offsetWidth/2))+'px';p.style.top=Math.min(innerHeight-p.offsetHeight-8,last.bottom+8)+'px';
+}
+document.addEventListener('pointerup',e=>{if(!e.target.closest('#pop'))setTimeout(capture,0)});
+document.addEventListener('pointerdown',e=>{if(!e.target.closest('#pop,.acts'))hidePop()});
+$('pop').addEventListener('pointerdown',e=>e.preventDefault());
+$('view').addEventListener('scroll',hidePop,{passive:true});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!e.isComposing)hidePop()});
+
+/* ---------- 輸入（回覆是模擬的） ---------- */
+function renderQuote(){
+ const q=draftQuote[active],c=$('qcard');c.hidden=!q;c.replaceChildren();
+ if(q){c.append(el('div',null,cut(q,50)),el('small',null,'所選內容'));const x=el('button',null,'×');x.type='button';x.setAttribute('aria-label','移除引用');x.onclick=()=>{delete draftQuote[active];renderQuote()};c.append(x)}
+}
+const inp=$('input');
+const sync=()=>{inp.style.height='28px';inp.style.height=Math.min(inp.scrollHeight,140)+'px';$('send').disabled=!inp.value.trim()};
+inp.addEventListener('input',sync);
+inp.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey&&!e.isComposing&&e.keyCode!==229){e.preventDefault();$('form').requestSubmit()}});
+$('form').addEventListener('submit',e=>{
+ e.preventDefault();const q=inp.value.trim();if(!q)return;
+ const c=chats[active],id=active,m=M('u'+(++n),'user',[q]);
+ if(draftQuote[id]){m.quote=draftQuote[id];delete draftQuote[id]}
+ c.messages=[...c.messages,m];
+ inp.value='';sync();render();$('view').scrollTop=$('view').scrollHeight;
+ setTimeout(()=>{c.messages=[...c.messages,M('r'+(++n),'assistant',['（模擬回覆）前端原型沒有連接 ChatGPT。'])];if(active===id){render();$('view').scrollTop=$('view').scrollHeight}},500);
+});
+render();
+if(chats[location.hash.slice(1)])go(location.hash.slice(1),{noPush:true});else history.replaceState(null,'','#root');
+</script>
+</body>
+</html>

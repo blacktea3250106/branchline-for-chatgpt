@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>BranchLine 設定</title>
+    <meta name="manifest.open_in_tab" content="true" />
+  </head>
+  <body>
+    <main class="bc-opt">
+      <h1>BranchLine for ChatGPT</h1>
+      <p>
+        外掛只在這台電腦的 Chrome 裡保存：有分支關係的對話 ID、父對話 ID、對話標題、第一次看到的時間、
+        在 ChatGPT 刪除的時間（刪除後只留 ID，不留標題；沒有子分支的，超過 30 天後在下次打開 ChatGPT 時清掉，還有子分支的會保留），以及結構圖是否收起、外掛是否開啟。
+        不保存訊息內容，也不會傳送到任何地方。外掛不在無痕視窗執行。同一個 Chrome 設定檔裡的 ChatGPT 帳號共用這份資料。
+      </p>
+      <p>
+        在這個瀏覽器裡用滑鼠從 ChatGPT 選單刪除的對話，會同時從所有分頁的結構圖移除。
+        在其他裝置、設定裡的「刪除所有對話」、用鍵盤刪除、或在外掛關閉期間刪除的，外掛看不到刪除動作，會在你下次打開那條時才移除。
+      </p>
+      <button type="button" id="bc-clear">清除所有分支紀錄</button>
+      <p id="bc-status" role="status"></p>
+    </main>
+    <script type="module" src="./main.ts"></script>
+  </body>
+</html>

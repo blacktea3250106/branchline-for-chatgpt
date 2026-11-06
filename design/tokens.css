@@ -1,0 +1,79 @@
+/* 設計 token：顏色與尺寸的唯一來源。
+   顏色量自使用者的 ChatGPT（2026-11-05，深色模式）；ChatGPT 沒有品牌色，層次全靠「半透明的白」。
+   外掛用 --bc- 前綴，避免和 ChatGPT 頁面自己的變數撞名。 */
+:root{
+  --bc-bg:#000;                         /* 頁面底，實測 rgb(0,0,0) */
+  --bc-text:#ededed;                    /* 內文，實測 rgb(237,237,237) */
+  --bc-mute:#afafaf;                    /* 次要文字與圖示，實測 rgb(175,175,175) */
+  --bc-dim:#8e8e8e;                     /* 更次要（說明、箭頭），估計值 */
+  --bc-line:rgba(255,255,255,.2);       /* 分隔線，實測約 20% 白 */
+  --bc-faint:rgba(255,255,255,.1);      /* 選中背景，實測 rgba(255,255,255,.1) */
+  --bc-surface:rgba(255,255,255,.12);   /* 氣泡與輸入框，估計值（未量到） */
+  --bc-hover:rgba(255,255,255,.07);     /* 滑過背景，估計值 */
+  --bc-strong:#fff;                     /* 目前位置的文字與實心點、焦點框 */
+  --bc-dot:rgba(255,255,255,.5);        /* 節點空心點的框線、通往目前位置的線 */
+  --bc-dot-root:rgba(255,255,255,.7);   /* 根節點的空心點 */
+  --bc-shadow:rgba(0,0,0,.4);           /* 窄視窗覆蓋在對話上時的陰影 */
+  --bc-link:#2c67c5;                    /* 原生連結（「接續自」），實測；實際畫面較亮的 #4f86e0 為原型的可讀性微調 */
+  --bc-radius:8px;                      /* 左欄選中項圓角，實測 */
+  --bc-row:32px;                        /* 結構圖每列高度 */
+  --bc-indent:14px;                     /* 結構圖每層縮進 */
+  --bc-line-w:1.5px;                    /* 結構圖線寬 */
+  --bc-map-w:280px;                     /* 結構圖固定寬；主內容區讓出同樣寬度 */
+  --bc-header:52px;                     /* ChatGPT 頂列高度（分享等按鈕在這裡），結構圖從它下方開始 */
+  --bc-toggle-top:8px;                  /* 收合鈕的上緣，和 ChatGPT 頂列按鈕對齊（實測頂列按鈕 top 8px） */
+  --bc-map-pad-top:12px;                /* 外掛裡結構圖從頂列下方開始，上方留白（原型是整頁，用 .bm 的 64px） */
+  --bc-overlay-shadow:-8px 0 24px var(--bc-shadow); /* 窄視窗覆蓋時的陰影 */
+  --bc-page-pad:24px 16px;              /* 選項頁內距 */
+  --bc-page-w:520px;                    /* 選項頁內容寬 */
+  --bc-ease:.3s ease;                   /* 展開／收合，實測 ChatGPT 原生右側面板的過渡 */
+  /* 選單面板與開關：實測 ChatGPT（2026-11-06）帳號選單 [role=menu] 與設定頁 [role=switch] 的計算後樣式 */
+  --bc-menu-bg:#303030;                 /* 選單底，實測 rgb(48,48,48) 90%；彈出視窗後面沒有東西，用不透明 */
+  /* 工具列小視窗的字與版面：沿用 macOS 選單列面板的慣例（中等字重，小視窗是 Chrome 的系統層級介面）；
+     圖示用外掛本身的 App 圖示，讓人一眼知道是哪個外掛，不必再寫名稱 */
+  --bc-pop-row:52px;
+  --bc-pop-footer-margin:0 16px;
+  --bc-pop-footer-pad:8px 0 12px;
+  --bc-pop-link-pad:8px;
+  --bc-pop-arrow:12px;
+  --bc-pop-w:232px;
+  --bc-pop-pad:14px 24px;
+  --bc-pop-gap:8px;
+  --bc-pop-font:400 12px/18px;          /* 上下列統一字重、字級與行高，配全小寫 */
+  --bc-pop-track:-.08px;                /* SF 13px 的字距（Apple 的建議值） */
+  --bc-pop-icon:18px;                   /* 與咖啡圖示共用18px */
+  /* 小視窗底色：直向漸層，和宣傳影片的背景同一種做法（上下深、中間微亮，像打在桌面上的一道光） */
+  --bc-pop-bg:linear-gradient(to bottom,#0c0c0d 0%,#2c2c30 50%,#0c0c0d 100%); /* 影片用 #1f1f21；小視窗只有 50px 高，中間調亮才看得出光帶（推論） */
+  --bc-app-edge:rgba(255,255,255,.16);  /* Logo 外緣細線：黑色 Logo 在深灰底上才分得出邊（macOS 深色模式的 App 圖示也有這圈），推論值 */
+  --bc-switch-w:32px;                   /* 開關軌道，實測 32×20 */
+  --bc-switch-h:20px;
+  --bc-switch-thumb:16px;               /* 圓鈕直徑，實測；關 translate 2px、開 14px */
+  --bc-switch-track:rgba(237,237,237,.1); /* 關：軌道，實測 text 10% */
+  --bc-switch-track-on:#fff;            /* 開：軌道，實測 */
+  --bc-switch-knob:#fff;                /* 關：圓鈕，實測 */
+  --bc-switch-knob-on:#000;             /* 開：圓鈕，實測 */
+  --bc-switch-shadow:0 1px 2px -1px rgba(0,0,0,.08); /* 圓鈕陰影，實測 */
+  --bc-switch-ease:.15s cubic-bezier(0,0,.2,1); /* 開關過渡，實測 duration-basic ease-out */
+}
+/* 淺色主題：ChatGPT 頁面 color-scheme 為 light 時套用（外掛在宿主元素上設 data-bc-theme="light"）。
+   實測自使用者的 ChatGPT（2026-11-06，淺色模式）：頁面底、內文、次要文字、左欄選中背景、分隔線；其餘為對應深色版的估計值。 */
+:root[data-bc-theme="light"]{
+  --bc-bg:#fcfcfc;                      /* 頁面底，實測 rgb(252,252,252) */
+  --bc-text:#0d0d0d;                    /* 內文，實測 rgb(13,13,13) */
+  --bc-mute:#5d5d5d;                    /* 次要文字，實測 rgb(93,93,93) */
+  --bc-dim:#8f8f8f;
+  --bc-line:rgba(0,0,0,.15);
+  --bc-faint:rgba(0,0,0,.05);           /* 選中背景，實測左欄 rgba(0,0,0,.05) */
+  --bc-surface:rgba(0,0,0,.05);
+  --bc-hover:rgba(0,0,0,.035);
+  --bc-strong:#0d0d0d;
+  --bc-dot:rgba(0,0,0,.4);
+  --bc-dot-root:rgba(0,0,0,.6);
+  --bc-shadow:rgba(0,0,0,.12);
+  --bc-menu-bg:#fff;                    /* 選單底，實測 rgb(255,255,255) 90%，不透明使用 */
+  --bc-switch-track:rgba(13,13,13,.1);  /* 實測 text 10% */
+  --bc-switch-track-on:#000;            /* 實測 */
+  --bc-switch-knob-on:#fff;             /* 實測 */
+  --bc-pop-bg:linear-gradient(to bottom,#fff 0%,#ececee 50%,#fff 100%); /* 深色漸層的淺色對應，推論 */
+  --bc-app-edge:transparent;            /* 淺色底上黑色 Logo 本來就清楚 */
+}

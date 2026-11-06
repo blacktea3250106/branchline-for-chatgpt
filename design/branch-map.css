@@ -1,0 +1,35 @@
+/* 分支結構圖元件。只用 tokens.css 的變數，類別一律 bm- 前綴。
+   結構：.bm > ul > li.bm-child? > .bm-row(.bm-active) > button.bm-node + button.bm-chev ; li > .bm-wrap > ul.bm-kids
+   狀態：.bm-trunk 根、.bm-on 目前位置、.bm-draft 尚未送出的新分支、.bm-path 通往目前位置、.bm-closed 收起、.bm-shut 箭頭朝右 */
+.bm{width:var(--bc-map-w);flex-shrink:0;border-left:1px solid var(--bc-faint);padding:64px 12px 16px 16px;overflow:auto}
+.bm ul{list-style:none;margin:0;padding:0}
+.bm li{position:relative}
+.bm-row{display:flex;align-items:center;height:var(--bc-row);border-radius:var(--bc-radius)}
+.bm-row:hover{background:var(--bc-hover)}
+.bm-row.bm-active{background:var(--bc-faint)}
+.bm-kids{margin:0 0 0 7px!important;padding-left:var(--bc-indent)!important;border-left:var(--bc-line-w) solid var(--bc-line)}
+.bm-kids.bm-flat{margin-left:3px!important;padding-left:6px!important}
+.bm-child::before{content:"";position:absolute;left:-14px;top:16px;width:10px;border-top:var(--bc-line-w) solid var(--bc-line)}
+.bm-kids.bm-flat>.bm-child::before{left:-6px;width:3px}
+.bm-child.bm-path::before{border-color:var(--bc-dot)}
+.bm-node{display:flex;align-items:center;gap:10px;flex:1;min-width:0;height:var(--bc-row);text-align:left;font-size:13px;line-height:1.4;font-weight:400;color:var(--bc-mute);padding:0 0 0 6px;position:relative;z-index:1}
+.bm-row:hover .bm-node{color:var(--bc-text)}
+.bm-node::before{content:"";flex-shrink:0;width:8px;height:8px;border-radius:50%;border:1.5px solid var(--bc-dot);background:var(--bc-bg)}
+.bm-node.bm-trunk{color:var(--bc-text);font-weight:500}
+.bm-node.bm-trunk::before{width:10px;height:10px;border-color:var(--bc-dot-root)}
+.bm-node.bm-on{color:var(--bc-strong);font-weight:500}
+.bm-node.bm-on::before{background:var(--bc-strong);border-color:var(--bc-strong)}
+.bm-node.bm-draft::before{border-style:dashed}
+.bm-node span{min-width:0;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bm-chev{flex-shrink:0;width:24px;height:24px;margin-right:2px;border-radius:6px;display:grid;place-items:center;color:var(--bc-dim)}
+.bm-chev:hover{background:var(--bc-faint);color:var(--bc-strong)}
+.bm-chev::before{content:"";width:5px;height:5px;border-right:1.6px solid currentColor;border-bottom:1.6px solid currentColor;transform:rotate(45deg) translate(-1px,-1px);transition:transform .18s}
+.bm-chev.bm-shut::before{transform:rotate(-45deg)}
+.bm-wrap{display:grid;grid-template-rows:1fr;transition:grid-template-rows .18s ease}
+.bm-wrap>ul{overflow:hidden;min-height:0}
+.bm-wrap.bm-closed{grid-template-rows:0fr}
+.bm-wrap.bm-closed>ul{visibility:hidden;transition:visibility 0s .18s}
+/* 收合切換鈕：和 ChatGPT 頂列按鈕同尺寸，放在頂列按鈕群左邊 */
+.bm-toggle{width:36px;height:36px;border-radius:var(--bc-radius);display:grid;place-items:center;color:var(--bc-mute)}
+.bm-toggle:hover{background:var(--bc-hover);color:var(--bc-text)}
+.bm-toggle svg{width:20px;height:20px}

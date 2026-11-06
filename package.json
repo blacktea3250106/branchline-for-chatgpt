@@ -1,0 +1,23 @@
+{
+  "name": "branchline",
+  "description": "在 ChatGPT 右側顯示分支對話結構圖的 Chrome 外掛",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "wxt",
+    "build": "wxt build",
+    "compile": "tsc --noEmit",
+    "test": "vitest run",
+    "postinstall": "wxt prepare"
+  },
+  "devDependencies": {
+    "@types/chrome": "^0.3.7",
+    "typescript": "^5.9.3",
+    "vite": "^8.1.5",
+    "vitest": "^3.2.7",
+    "web-ext": "^10.5.0",
+    "wxt": "^0.21.3"
+  },
+  "license": "MIT"
+}

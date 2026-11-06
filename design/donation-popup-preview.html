@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>BranchLine · Popup preview</title>
+<link rel="stylesheet" href="tokens.css">
+<link rel="stylesheet" href="popup.css">
+<div class="bc-item">
+      <!-- 外掛 Logo，與 design/icon.svg 相同（黑底圓角框＋白線） -->
+      <svg class="bc-app" viewBox="0 0 128 128" aria-hidden="true">
+        <path d="M42.80 0.00 C30.47 0.00 24.31 0.00 18.75 1.83 C10.43 4.73 4.73 10.43 1.83 18.75 C0.00 24.31 0.00 30.47 0.00 42.80 L0.00 85.19 C0.00 97.52 0.00 103.68 1.83 109.24 C4.73 117.56 10.43 123.26 18.75 126.16 C24.31 128.00 30.47 128.00 42.80 128.00 L85.19 128.00 C97.52 128.00 103.68 128.00 109.24 126.16 C117.56 123.26 123.26 117.56 126.16 109.24 C128.00 103.68 128.00 97.52 128.00 85.19 L128.00 42.80 C128.00 30.47 128.00 24.31 126.16 18.75 C123.26 10.43 117.56 4.73 109.24 1.83 C103.68 0.00 97.52 0.00 85.19 0.00 Z" fill="#000" class="bc-app-tile" />
+        <g fill="none" stroke="#fff" stroke-width="8"><circle cx="36" cy="92" r="18" /><path d="M36 12V58M70 92H116" stroke-linecap="round" /></g>
+      </svg>
+      <span class="bc-label" id="bc-label">branch mode</span>
+      <button type="button" id="bc-enabled" role="switch" aria-checked="true" aria-labelledby="bc-label" class="bc-switch"></button>
+    </div><div class="bc-footer"><button class="bc-tip"><span class="bc-coffee-label"><svg class="bc-coffee" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h10v5a4 4 0 0 1-4 4H8a4 4 0 0 1-4-4V7Z"/><path d="M14 8h1a2.5 2.5 0 0 1 0 5h-1M3 18h13M7 4V2M11 4V2"/></svg>buy me a coffee</span><span class="bc-action-slot" aria-hidden="true"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12 12 4M4.5 4H12v7.5"/></svg></span></button></div>
+<script>
+const theme=new URLSearchParams(location.search).get('theme');
+document.documentElement.dataset.bcTheme=theme==='light'?'light':'dark';
+const toggle=document.querySelector('.bc-switch');
+toggle.addEventListener('click',()=>toggle.setAttribute('aria-checked',String(toggle.getAttribute('aria-checked')!=='true')));
+requestAnimationFrame(()=>toggle.classList.add('bc-ready'));
+document.querySelector('.bc-tip').addEventListener('click',()=>parent.postMessage({type:'bc-coffee-preview'},location.origin));
+</script>
+</html>

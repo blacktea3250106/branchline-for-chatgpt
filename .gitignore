@@ -1,0 +1,40 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+node_modules
+.output
+stats.html
+stats-*.json
+.wxt
+web-ext.config.ts
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# 本機開發筆記與 AI 協作檔（不進版控）
+CLAUDE.md
+AGENTS.md
+docs/KICKOFF.md
+docs/BRANCHLINE_CONTEXT.md
+reports/
+research_notes/
+design/icon-preview/
+
+# 影片素材與 AI 工具（不公開）
+video/
+.agents/
+.claude/
